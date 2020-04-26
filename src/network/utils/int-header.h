@@ -92,10 +92,12 @@ public:
 		};
 		uint64_t ts;
 	};
-
 	IntHeader();
+	std::vector<uint16_t> qlenFcm; // fcm modification
+	//uint16_t pgFcm; //fcm modification
 	static uint32_t GetStaticSize();
 	void PushHop(uint64_t time, uint64_t bytes, uint32_t qlen, uint64_t rate);
+	void SetFcm(std::vector<uint16_t>& qlen); // fcm modification
 	void Serialize (Buffer::Iterator start) const;
 	uint32_t Deserialize (Buffer::Iterator start);
 	uint64_t GetTs(void);

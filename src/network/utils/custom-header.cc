@@ -43,8 +43,8 @@ CustomHeader::CustomHeader ()
     ipv4Flags (0),
     m_fragmentOffset (0),
     m_checksum (0),
-    m_headerSize(5*4)
-{
+    m_headerSize(5*4),
+    qlenFcm(0)
 }
 CustomHeader::CustomHeader (uint32_t _headerType)
   : brief(1), headerType(_headerType), 
@@ -60,7 +60,8 @@ CustomHeader::CustomHeader (uint32_t _headerType)
     ipv4Flags (0),
     m_fragmentOffset (0),
     m_checksum (0),
-    m_headerSize(5*4)
+    m_headerSize(5*4),
+    qlenFcm(0)
 {
 }
 
@@ -162,6 +163,7 @@ void CustomHeader::Serialize (Buffer::Iterator start) const{
 		  i.WriteHtonU32 (udp.seq);
 		  i.WriteHtonU16 (udp.pg);
 		  udp.ih.Serialize(i);
+		  i.WriteHtonU16 (qlenFcm); // fcm modification
 	  }else if (l3Prot == 0xFF){ // CNP
 		  i.WriteU8(cnp.qIndex);
 		  i.WriteU16(cnp.fid);
@@ -175,6 +177,7 @@ void CustomHeader::Serialize (Buffer::Iterator start) const{
 		  i.WriteU16(ack.pg);
 		  i.WriteU32(ack.seq);
 		  udp.ih.Serialize(i);
+		  i.WriteHtonU16 (qlenFcm); // fcm modification
 	  }else if (l3Prot == 0xFE){ // PFC
 		  i.WriteU32 (pfc.time);
 		  i.WriteU32 (pfc.qlen);
@@ -293,9 +296,10 @@ CustomHeader::Deserialize (Buffer::Iterator start)
 		  // SeqTsHeader
 		  udp.seq = i.ReadNtohU32 ();
 		  udp.pg =  i.ReadNtohU16 ();
-		  if (getInt)
+		  if (getInt){ 
 			  udp.ih.Deserialize(i);
-
+			  qlenFcm = i.ReadNtohU16 (); // fcm modification 
+		  } 
 		  l4Size = GetUdpHeaderSize();
 	  }else if (l3Prot == 0xFF){
 		  cnp.qIndex = i.ReadU8();
@@ -312,6 +316,7 @@ CustomHeader::Deserialize (Buffer::Iterator start)
 		  ack.seq = i.ReadU32();
 		  if (getInt)
 			  ack.ih.Deserialize(i);
+			  qlenFcm = i.ReadNtohU16 (); // fcm modification 
 		  l4Size = GetAckSerializedSize();
 	  }else if (l3Prot == 0xFE){ // PFC
 		  pfc.time = i.ReadU32 ();
@@ -329,11 +334,11 @@ uint8_t CustomHeader::GetIpv4EcnBits (void) const{
 }
 
 uint32_t CustomHeader::GetAckSerializedSize(void){
-	return sizeof(ack.sport) + sizeof(ack.dport) + sizeof(ack.flags) + sizeof(ack.pg) + sizeof(ack.seq) + IntHeader::GetStaticSize();
+	return sizeof(ack.sport) + sizeof(ack.dport) + sizeof(ack.flags) + sizeof(ack.pg) + sizeof(ack.seq) + IntHeader::GetStaticSize() + 2; // fcm modification
 }
 
 uint32_t CustomHeader::GetUdpHeaderSize(void){
-	return 8 + sizeof(udp.pg) + sizeof(udp.seq) + IntHeader::GetStaticSize();
+	return 8 + sizeof(udp.pg) + sizeof(udp.seq) + IntHeader::GetStaticSize() + 2; // fcm modification
 }
 
 } // namespace ns3

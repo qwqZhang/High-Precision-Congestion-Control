@@ -7,14 +7,14 @@ uint32_t IntHop::multi = 1;
 
 uint32_t IntHeader::mode = 0;
 
-IntHeader::IntHeader() : nhop(0) {
+IntHeader::IntHeader() : nhop(0), qlenFcm(8,0){
 	for (uint32_t i = 0; i < maxHop; i++)
 		hop[i] = {0};
 }
 
 uint32_t IntHeader::GetStaticSize(){
 	if (mode == 0){
-		return sizeof(hop) + sizeof(nhop);
+		return sizeof(hop) + sizeof(nhop)+ sizeof(qlenFcm);
 	}else if (mode == 1){
 		return sizeof(ts);
 	}else {
@@ -30,6 +30,13 @@ void IntHeader::PushHop(uint64_t time, uint64_t bytes, uint32_t qlen, uint64_t r
 		nhop++;
 	}
 }
+// fcm modification
+void IntHeader::SetFcm(std::vector<uint16_t>& qlen){
+	// only do this in INT mode
+	if (mode == 0){
+		qlenFcm = qlen;
+	}
+}
 
 void IntHeader::Serialize (Buffer::Iterator start) const{
 	Buffer::Iterator i = start;
@@ -39,6 +46,8 @@ void IntHeader::Serialize (Buffer::Iterator start) const{
 			i.WriteU32(hop[j].buf[1]);
 		}
 		i.WriteU16(nhop);
+		for (uint32_t k = 0; k < 8; k++)
+			i.WriteU16(qlenFcm[k]);    // fcm modification
 	}else if (mode == 1){
 		i.WriteU64(ts);
 	}
@@ -52,6 +61,8 @@ uint32_t IntHeader::Deserialize (Buffer::Iterator start){
 			hop[j].buf[1] = i.ReadU32();
 		}
 		nhop = i.ReadU16();
+		for (uint32_t k = 0; k < 8; k++)
+			qlenFcm[k] = i.ReadU16();    // fcm modification
 	}else if (mode == 1){
 		ts = i.ReadU64();
 	}
