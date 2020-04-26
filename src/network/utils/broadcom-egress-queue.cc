@@ -206,8 +206,72 @@ namespace ns3 {
 		NS_ASSERT_MSG(false, "BEgressQueue::DoDequeue not implemented");
 		return 0;
 	}
-
-
+	/*fcm modification*/
+	Ptr<Packet> 
+		BEgressQueue::DequeueFcm(Time avail[])
+	{
+		NS_LOG_FUNCTION(this);	
+		Ptr<Packet> packet = DoDequeueFcm(avail);
+		if (packet != 0)
+		{
+			NS_ASSERT(m_nBytes >= packet->GetSize());
+			NS_ASSERT(m_nPackets > 0);
+			m_nBytes -= packet->GetSize();
+			m_nPackets--;
+			NS_LOG_LOGIC("m_traceDequeue (packet)");
+			m_traceDequeue(packet);
+		}
+		return packet;	
+	}
+	
+	Ptr<Packet>
+		BEgressQueue::DoDequeueFcm(Time avail[])
+	{
+		NS_LOG_FUNCTION(this);
+		if (m_bytesInQueueTotal == 0)
+		{
+			NS_LOG_LOGIC("Queue empty");
+			return 0;
+		}
+		bool found = false;
+		uint32_t qIndex;
+		if (m_queues[0]->GetNPackets() > 0)  //priority 0 is the highest priority in qcn
+		{
+			found = true;
+			qIndex = 0;
+		}
+		else
+		{
+			for (qIndex = 1; qIndex <= qCnt; qIndex++)
+			{
+				if (m_queues[(qIndex + m_rrlast) % qCnt]->GetNPackets() > 0)
+				{
+					if (avail[(qIndex + m_rrlast) % qCnt].GetTimeStep() > Simulator::Now().GetTimeStep()) //not available now
+						continue;
+					found = true;
+					break;
+				}
+			}
+			qIndex = (qIndex + m_rrlast) % qCnt;
+		}
+		if (found)
+		{
+			Ptr<Packet> p = m_queues[qIndex]->Dequeue();
+			m_bytesInQueueTotal -= p->GetSize();
+			m_bytesInQueue[qIndex] -= p->GetSize();
+			if (qIndex != 0)
+			{
+				m_rrlast = qIndex;
+			}
+			m_qlast = qIndex;
+			NS_LOG_LOGIC("Popped " << p);
+			NS_LOG_LOGIC("Number bytes " << m_bytesInQueueTotal);
+			return p;
+		}
+		NS_LOG_LOGIC("Nothing can be sent");
+		return 0;
+	}
+	
 	Ptr<const Packet>
 		BEgressQueue::DoPeek(void) const	//DoPeek doesn't work for multiple queues!!
 	{
