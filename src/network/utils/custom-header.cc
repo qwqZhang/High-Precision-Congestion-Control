@@ -45,6 +45,7 @@ CustomHeader::CustomHeader ()
     m_checksum (0),
     m_headerSize(5*4),
     qlenFcm(0)
+{
 }
 CustomHeader::CustomHeader (uint32_t _headerType)
   : brief(1), headerType(_headerType), 
