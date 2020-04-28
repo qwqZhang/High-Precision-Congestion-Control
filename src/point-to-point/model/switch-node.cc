@@ -105,7 +105,6 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
 		}else{
 			qIndex = (ch.l3Prot == 0x06 ? 1 : ch.udp.pg); // if TCP, put to queue 1
 		}
-
 		// admission control
 		FlowIdTag t;
 		p->PeekPacketTag(t);
@@ -117,9 +116,10 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
 			}else{
 				return; // Drop
 			}
-			CheckAndSendPfc(inDev, qIndex);
+			//CheckAndSendPfc(inDev, qIndex);   °ÑpfcÍ£µô 
 		}
 		m_bytes[inDev][idx][qIndex] += p->GetSize();
+		AddFcmEntry(inDev, qIndex, idx); //fcm modification  AddFcmEntry
 		m_devices[idx]->SwitchSend(qIndex, p, ch);
 	}else
 		return; // Drop
@@ -172,6 +172,10 @@ void SwitchNode::AddTableEntry(Ipv4Address &dstAddr, uint32_t intf_idx){
 	m_rtTable[dip].push_back(intf_idx);
 }
 
+void SwitchNode::AddFcmEntry(uint32_t inport, uint32_t pg, uint32_t outport){
+	fcm_Table[inport][pg].insert(outport);
+}
+
 void SwitchNode::ClearTable(){
 	m_rtTable.clear();
 }
@@ -212,6 +216,20 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 			Ptr<QbbNetDevice> dev = DynamicCast<QbbNetDevice>(m_devices[ifIndex]);
 			if (m_ccMode == 3){ // HPCC
 				ih->PushHop(Simulator::Now().GetTimeStep(), m_txBytes[ifIndex], dev->GetQueue()->GetNBytesTotal(), dev->GetDataRate().GetBitRate());
+				//fcm modification
+				if(fcm_Table.find(ifIndex) != fcm_Table.end()){
+					uint32_t max,mid;
+					uint16_t qlenFcm[8]={0};
+					for(auto &i:fcm_Table[ifIndex]){
+						max = DynamicCast<QbbNetDevice>(m_devices[*(i.second.begin())])->GetQueue()->GetNBytes(i.first);
+						for(auto j:i.second){
+							mid = DynamicCast<QbbNetDevice>(m_devices[j])->GetQueue()->GetNBytes(i.first);
+							if(mid>max)max = mid;
+						}
+						qlenFcm[i.first] = max;
+					}
+					ih->SetQlenFcm((int*)&qlenFcm);
+				}
 			}
 		}
 	}
