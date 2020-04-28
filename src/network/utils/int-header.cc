@@ -7,9 +7,12 @@ uint32_t IntHop::multi = 1;
 
 uint32_t IntHeader::mode = 0;
 
-IntHeader::IntHeader() : nhop(0), qlenFcm(8,0){
+IntHeader::IntHeader() : nhop(0){
 	for (uint32_t i = 0; i < maxHop; i++)
 		hop[i] = {0};
+	for (uint32_t i = 0; i < 8; i++){
+		qlenFcm[i] = 0;		
+	}
 }
 
 uint32_t IntHeader::GetStaticSize(){
@@ -31,10 +34,13 @@ void IntHeader::PushHop(uint64_t time, uint64_t bytes, uint32_t qlen, uint64_t r
 	}
 }
 // fcm modification
-void IntHeader::SetFcm(std::vector<uint16_t>& qlen){
+void IntHeader::SetFcm(uint16_t *qlen){
 	// only do this in INT mode
 	if (mode == 0){
-		qlenFcm = qlen;
+		for(auto i = 0; i < 8; ++i){
+			qlenFcm[i] = *(qlen + i);
+		}
+		
 	}
 }
 
