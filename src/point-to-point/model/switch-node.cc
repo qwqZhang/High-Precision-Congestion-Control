@@ -173,7 +173,7 @@ void SwitchNode::AddTableEntry(Ipv4Address &dstAddr, uint32_t intf_idx){
 }
 
 void SwitchNode::AddFcmEntry(uint32_t inport, uint32_t pg, uint32_t outport){
-	fcm_Table[inport][pg].insert(outport);
+	fcm_Table[inport][pg][outport]=true;
 }
 
 void SwitchNode::ClearTable(){
@@ -217,6 +217,7 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 			if (m_ccMode == 3){ // HPCC
 				ih->PushHop(Simulator::Now().GetTimeStep(), m_txBytes[ifIndex], dev->GetQueue()->GetNBytesTotal(), dev->GetDataRate().GetBitRate());
 				//fcm modification
+				/*
 				if(fcm_Table.find(ifIndex) != fcm_Table.end()){
 					uint32_t max,mid;
 					uint16_t qlenFcm[8]={0};
@@ -228,8 +229,21 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 						}
 						qlenFcm[i.first] = max;
 					}
-					ih->SetQlenFcm((int*)&qlenFcm);
+					ih->SetFcm((int*)&qlenFcm);
 				}
+				*/
+				uint32_t max=0, mid;
+				uint16_t qlenFcm[8]={0};
+				for(auto i = 0; i<qCnt; ++i){
+					for(auto j = 0; j<pCnt; ++j){
+						if(fcm_Table[ifIndex][i][j]){
+							mid = DynamicCast<QbbNetDevice>(m_devices[j])->GetQueue()->GetNBytes(i);
+							if(mid>max)max = mid;	
+						}
+					}
+					qlenFcm[i] = max;
+				}
+				ih->SetFcm((int*)&qlenFcm);
 			}
 		}
 	}
