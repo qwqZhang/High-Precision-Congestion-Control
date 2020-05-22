@@ -598,6 +598,10 @@ int main(int argc, char *argv[])
 
 	Config::SetDefault("ns3::QbbNetDevice::PauseTime", UintegerValue(pause_time));
 	Config::SetDefault("ns3::QbbNetDevice::QcnEnabled", BooleanValue(enable_qcn));
+	if (cc_mode == 4){
+		Config::SetDefault("ns3::QbbNetDevice::FcmEnabled", BooleanValue(true));
+		Config::SetDefault("ns3::QbbNetDevice::QbbEnabled", BooleanValue(false));
+	} //fcm modification, use it to enable fcm in netdecive
 	Config::SetDefault("ns3::QbbNetDevice::DynamicThreshold", BooleanValue(dynamicth));
 
 	// set int_multi
@@ -793,7 +797,9 @@ int main(int argc, char *argv[])
 			rdmaHw->SetAttribute("L2BackToZero", BooleanValue(l2_back_to_zero));
 			rdmaHw->SetAttribute("L2ChunkSize", UintegerValue(l2_chunk_size));
 			rdmaHw->SetAttribute("L2AckInterval", UintegerValue(l2_ack_interval));
-			rdmaHw->SetAttribute("CcMode", UintegerValue(cc_mode));
+			if(cc_mode = 4){
+				rdmaHw->SetAttribute("CcMode", UintegerValue(3)); //because fcm use cc_mode, too. CC in host use hpcc = 3
+			}else rdmaHw->SetAttribute("CcMode", UintegerValue(cc_mode)); //because fcm use cc_mode, too. CC in host use hpcc = 3
 			rdmaHw->SetAttribute("RateDecreaseInterval", DoubleValue(rate_decrease_interval));
 			rdmaHw->SetAttribute("MinRate", DataRateValue(DataRate(min_rate)));
 			rdmaHw->SetAttribute("Mtu", UintegerValue(packet_payload_size));
@@ -831,6 +837,9 @@ int main(int argc, char *argv[])
 		if (n.Get(i)->GetNodeType() == 1){ // switch
 			Ptr<SwitchNode> sw = DynamicCast<SwitchNode>(n.Get(i));
 			sw->SetAttribute("CcMode", UintegerValue(cc_mode));
+			if(cc_mode == 4){
+				sw->StartTiming(); //fcm modification, start the timeout mechanism of fcm_Table
+			}
 		}
 	}
 
