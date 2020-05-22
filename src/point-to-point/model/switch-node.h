@@ -17,7 +17,12 @@ class SwitchNode : public Node{
 	std::unordered_map<uint32_t, std::vector<int> > m_rtTable; // map from ip address (u32) to possible ECMP port (index of dev)
 	//std::unordered_map<uint32_t, std::map<int, bool> > m_intTable;// map from port to int headers; 
 	//std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::set<uint32_t>>> fcm_Table; //fcm modification: inport to queue priority to outport-bool pair
+	/*fcm modification*/
+	Time fcmTimeInterval;
+	Time fcmProbeInterval;
+	DataRate [pCnt][qCnt]; //use to store the initail rate of a 
 	bool fcm_Table[pCnt][qCnt][pCnt];
+	bool fcm_outTable[pCnt];
 	// monitor of PFC
 	uint32_t m_bytes[pCnt][pCnt][qCnt]; // m_bytes[inDev][outDev][qidx] is the bytes from inDev enqueued for outDev at qidx
 	
