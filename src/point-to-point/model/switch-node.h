@@ -50,7 +50,13 @@ public:
 	SwitchNode();
 	void SetEcmpSeed(uint32_t seed);
 	void AddTableEntry(Ipv4Address &dstAddr, uint32_t intf_idx);
-	void AddFcmEntry(uint32_t inport, uint32_t pg, uint32_t outport); //fcm modicication use to write down the outport have flows
+	
+	/* fcm modicication */ 
+	void AddFcmEntry(uint32_t inport, uint32_t pg, uint32_t outport); 
+	void StartTiming();
+	void DoStartTiming();
+	void ClearFcmTable(); 
+	
 	void ClearTable();
 	bool SwitchReceiveFromDevice(Ptr<NetDevice> device, Ptr<Packet> packet, CustomHeader &ch);
 	void SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Packet> p);
