@@ -116,10 +116,28 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
 			}else{
 				return; // Drop
 			}
-			//CheckAndSendPfc(inDev, qIndex);   °ÑpfcÍ£µô 
+			if(m_ccMode != 4){  // fcm modification, if fcm, no need to pfc
+				CheckAndSendPfc(inDev, qIndex); 
+			} 
 		}
 		m_bytes[inDev][idx][qIndex] += p->GetSize();
-		AddFcmEntry(inDev, qIndex, idx); //fcm modification  AddFcmEntry
+		if(m_ccMode = 4){
+			//after 2 us, if there are not reverse flow, switch will send packet itself to inform upstream switch about its qlen
+			if(!fcm_outTable[inDev]){  
+				Ptr<Packet> p = Create<Packet>(0);
+				CustomHeader ch(CustomHeader::L2_Header | CustomHeader::L3_Header | CustomHeader::L4_Header);
+				ch.l3Prot = 0xFF;	
+				ch.sip = m_node->GetObject<Ipv4>()->GetAddress(ifIndex, 0).GetLocal();
+				ch.dip = Ipv4Address("255.255.255.255");
+				ch.m_payloadSize = p->GetSize()+ch.udp.GetUdpHeaderSize();
+				ch.m_ttl = 1;
+				ch.id = UniformVariable(0, 65536).GetValue();
+				p->AddHeader(ch);
+				p->PeekHeader(ch);
+				DynamicCast<QbbNetDevice>(m_devices[ifIndex]).SwitchSend(0, p, ch);
+			}
+			AddFcmEntry(inDev, qIndex, idx); //fcm modification  AddFcmEntry
+		}
 		m_devices[idx]->SwitchSend(qIndex, p, ch);
 	}else
 		return; // Drop
@@ -214,9 +232,12 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 		if (buf[PppHeader::GetStaticSize() + 9] == 0x11){ // udp packet
 			IntHeader *ih = (IntHeader*)&buf[PppHeader::GetStaticSize() + 20 + 8 + 6]; // ppp, ip, udp, SeqTs, INT
 			Ptr<QbbNetDevice> dev = DynamicCast<QbbNetDevice>(m_devices[ifIndex]);
-			if (m_ccMode == 3){ // HPCC
+			if (m_ccMode == 3){ //HPCC
 				ih->PushHop(Simulator::Now().GetTimeStep(), m_txBytes[ifIndex], dev->GetQueue()->GetNBytesTotal(), dev->GetDataRate().GetBitRate());
-				//fcm modification
+			}
+			if (m_ccMode == 4){ // FCM
+				ih->PushHop(Simulator::Now().GetTimeStep(), m_txBytes[ifIndex], dev->GetQueue()->GetNBytesTotal(), dev->GetDataRate().GetBitRate());
+				//old fcm modification use map 
 				/*
 				if(fcm_Table.find(ifIndex) != fcm_Table.end()){
 					uint32_t max,mid;
@@ -232,18 +253,22 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 					ih->SetFcm((int*)&qlenFcm);
 				}
 				*/
+				//new fcm modification, use int instead of PFC
 				uint32_t max=0, mid;
+				//bool found = false;
 				uint16_t qlenFcm[8]={0};
 				for(auto i = 0; i<qCnt; ++i){
 					for(auto j = 0; j<pCnt; ++j){
 						if(fcm_Table[ifIndex][i][j]){
 							mid = DynamicCast<QbbNetDevice>(m_devices[j])->GetQueue()->GetNBytes(i);
 							if(mid>max)max = mid;	
+							//found = true; //??
 						}
 					}
 					qlenFcm[i] = max;
 				}
 				ih->SetFcm((int*)&qlenFcm);
+				fcm_outTable[ifIndex]=true;				
 			}
 		}
 	}
