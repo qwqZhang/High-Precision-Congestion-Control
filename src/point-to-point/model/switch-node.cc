@@ -37,7 +37,7 @@ TypeId SwitchNode::GetTypeId (void)
   return tid;
 }
 
-SwitchNode::SwitchNode(){
+SwitchNode::SwitchNode():fcmTimeInterval(MicroSeconds(2)){ //fcmTimeInterval setting
 	m_ecmpSeed = m_id;
 	m_node_type = 1;
 	m_mmu = CreateObject<SwitchMmu>();
@@ -189,13 +189,30 @@ void SwitchNode::AddTableEntry(Ipv4Address &dstAddr, uint32_t intf_idx){
 	uint32_t dip = dstAddr.Get();
 	m_rtTable[dip].push_back(intf_idx);
 }
+void SwitchNode::ClearTable(){
+	m_rtTable.clear();
+}
 
+/*fcm modification*/
 void SwitchNode::AddFcmEntry(uint32_t inport, uint32_t pg, uint32_t outport){
 	fcm_Table[inport][pg][outport]=true;
 }
-
-void SwitchNode::ClearTable(){
-	m_rtTable.clear();
+void SwitchNode::ClearFcmTable(){
+	for(auto i = 0; i < pCnt; ++i){
+		for(auto j = 0; j < qCnt){
+			for(auto k = 0; k < pCnt){
+				fcm_Table[i][j][k] = false;
+			}
+		}
+		fcm_outTable[i] = false;
+	}
+}
+void SwitchNode::StartTiming(){
+	Simulator::ScheduleNow (&DoStartTiming, this);
+}	
+void SwitchNode::DoStartTiming(){
+	ClearFcmTable();
+	Simulator::Schedule (fcmTimeInterval, &DoStartTiming, this)
 }
 
 // This function can only be called in switch mode
