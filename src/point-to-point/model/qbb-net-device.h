@@ -170,7 +170,14 @@ protected:
   bool m_paused[qCnt];	//< Whether a queue paused
 
   //qcn
-
+  /* fcm parameters */
+  bool m_fcmEnabled; //use to distinct with other method
+  EventId  m_nextSend;		//< The next send event
+  DataRate m_rate[qCnt];    //use qcn's method as fcm's rate limitation
+  Time m_nextAvail[qCnt];   
+  double   m_credits[qCnt];
+  uint64_t gradeFcm;        //use as the grade of rate limitation
+  
   /* RP parameters */
   EventId  m_nextSend;		//< The next send event
   /* State variable for rate-limited queues */
