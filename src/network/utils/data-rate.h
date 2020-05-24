@@ -92,7 +92,7 @@ public:
 
   DataRate& operator /=(const double& c);
   DataRate& operator +=(const DataRate& r);
-
+  
   /**
    * \brief Calculate transmission time
    *
@@ -138,6 +138,7 @@ DataRate operator/(const DataRate& d, const double& c);
 double operator/(const DataRate& lhs, const DataRate& rhs);
 
 DataRate operator+(const DataRate& lhs, const DataRate& rhs);
+DataRate operator-(const DataRate& d, const double& c);
 
 } // namespace ns3
 

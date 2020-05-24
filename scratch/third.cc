@@ -611,6 +611,8 @@ int main(int argc, char *argv[])
 		IntHeader::mode = 1;
 	else if (cc_mode == 3) // hpcc, use int
 		IntHeader::mode = 0;
+	else if (cc_mode == 4) //fcm modification
+		IntHeader::mode = 4;
 	else // others, no extra header
 		IntHeader::mode = 5;
 
@@ -875,7 +877,7 @@ int main(int argc, char *argv[])
 	//
 	// add trace
 	//
-
+ 	
 	NodeContainer trace_nodes;
 	for (uint32_t i = 0; i < trace_num; i++)
 	{

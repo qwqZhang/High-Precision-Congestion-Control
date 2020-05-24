@@ -10,7 +10,7 @@
 #include "qbb-net-device.h"
 #include "ppp-header.h"
 #include "ns3/int-header.h"
-
+#include "ns3/random-variable.h"
 namespace ns3 {
 
 TypeId SwitchNode::GetTypeId (void)
@@ -127,14 +127,14 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
 				Ptr<Packet> p = Create<Packet>(0);
 				CustomHeader ch(CustomHeader::L2_Header | CustomHeader::L3_Header | CustomHeader::L4_Header);
 				ch.l3Prot = 0xFF;	
-				ch.sip = m_node->GetObject<Ipv4>()->GetAddress(ifIndex, 0).GetLocal();
-				ch.dip = Ipv4Address("255.255.255.255");
-				ch.m_payloadSize = p->GetSize()+ch.udp.GetUdpHeaderSize();
+				ch.sip =GetObject<Ipv4>()->GetAddress(inDev, 0).GetLocal().Get();
+				ch.dip = Ipv4Address("255.255.255.255").Get();
+				ch.m_payloadSize = p->GetSize()+ch.GetUdpHeaderSize();
 				ch.m_ttl = 1;
-				ch.id = UniformVariable(0, 65536).GetValue();
+				ch.ipid = UniformVariable(0, 65536).GetValue();
 				p->AddHeader(ch);
 				p->PeekHeader(ch);
-				DynamicCast<QbbNetDevice>(m_devices[ifIndex]).SwitchSend(0, p, ch);
+				m_devices[inDev]->SwitchSend(0, p, ch);
 			}
 			AddFcmEntry(inDev, qIndex, idx); //fcm modification  AddFcmEntry
 		}
@@ -199,8 +199,8 @@ void SwitchNode::AddFcmEntry(uint32_t inport, uint32_t pg, uint32_t outport){
 }
 void SwitchNode::ClearFcmTable(){
 	for(auto i = 0; i < pCnt; ++i){
-		for(auto j = 0; j < qCnt){
-			for(auto k = 0; k < pCnt){
+		for(auto j = 0; j < qCnt; ++j){
+			for(auto k = 0; k < pCnt; ++k){
 				fcm_Table[i][j][k] = false;
 			}
 		}
@@ -208,11 +208,11 @@ void SwitchNode::ClearFcmTable(){
 	}
 }
 void SwitchNode::StartTiming(){
-	Simulator::ScheduleNow (&DoStartTiming, this);
+	Simulator::ScheduleNow (&SwitchNode::DoStartTiming, this);
 }	
 void SwitchNode::DoStartTiming(){
 	ClearFcmTable();
-	Simulator::Schedule (fcmTimeInterval, &DoStartTiming, this)
+	Simulator::Schedule(fcmTimeInterval, &SwitchNode::DoStartTiming, this);
 }
 
 // This function can only be called in switch mode
@@ -284,7 +284,7 @@ void SwitchNode::SwitchNotifyDequeue(uint32_t ifIndex, uint32_t qIndex, Ptr<Pack
 					}
 					qlenFcm[i] = max;
 				}
-				ih->SetFcm((int*)&qlenFcm);
+				ih->SetFcm((uint16_t*)&qlenFcm);
 				fcm_outTable[ifIndex]=true;				
 			}
 		}

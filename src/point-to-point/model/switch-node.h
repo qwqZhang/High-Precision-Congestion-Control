@@ -20,7 +20,7 @@ class SwitchNode : public Node{
 	/*fcm modification*/
 	Time fcmTimeInterval;
 	Time fcmProbeInterval;
-	DataRate [pCnt][qCnt]; //use to store the initail rate of a 
+	//DataRate[pCnt][qCnt]; //use to store the initail rate of a 
 	bool fcm_Table[pCnt][qCnt][pCnt];
 	bool fcm_outTable[pCnt];
 	// monitor of PFC

@@ -172,7 +172,7 @@ protected:
   //qcn
   /* fcm parameters */
   bool m_fcmEnabled; //use to distinct with other method
-  EventId  m_nextSend;		//< The next send event
+  //EventId  m_nextSend;		//< The next send event
   DataRate m_rate[qCnt];    //use qcn's method as fcm's rate limitation
   Time m_nextAvail[qCnt];   
   double   m_credits[qCnt];
