@@ -133,6 +133,10 @@ void SwitchNode::SendToDev(Ptr<Packet>p, CustomHeader &ch){
 				ch.m_ttl = 1;
 				ch.ipid = UniformVariable(0, 65536).GetValue();
 				p->AddHeader(ch);
+				
+				PppHeader ppp;
+  				ppp.SetProtocol (0x0021); //ppp header protocol, means ipv4
+  				p->AddHeader (ppp);
 				p->PeekHeader(ch);
 				m_devices[inDev]->SwitchSend(0, p, ch);
 			}
